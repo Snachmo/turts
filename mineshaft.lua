@@ -235,5 +235,5 @@ function goHome()
   end
 end
 
-mineShaft(-40)
+mineShaft(-10)
 goHome()
