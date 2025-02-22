@@ -29,10 +29,10 @@ HAZARD_BLOCKS = {
 }
 
 function isHazard(block)
-  if block != nil then
-    return HAZARD_BLOCKS[block]
+  if block == nil then
+    return false
   end
-  return false
+  return HAZARD_BLOCKS[block]
 end
 
 function isDiggable(block, digAbundant)
