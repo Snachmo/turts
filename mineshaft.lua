@@ -134,6 +134,11 @@ function safeDig(digDirection, digAbundant)
   end
 end
 
+function goHomeFuel()
+  local buffer = 300
+  return turtle.getFuelLevel() - buffer - math.abs(position.x) - math.abs(position.y) - math.abs(position.z)
+end
+
 function refuelFromInventory()
   print("Attempting to refuel from inventory with " .. turtle.getFuelLevel() .. " fuel remaining.")
   for slot = 1, 16 do
@@ -142,22 +147,22 @@ function refuelFromInventory()
       print("Refueling from slot " .. slot)
       turtle.refuel(1)
       print("New fuel level " .. turtle.getFuelLevel())
-      if turtle.checkFuelLevel() then
-        return true
-      end
+      return true
     end
   end
-  print("Failed to refuel, no fuel in inventory.")
+  print("No fuel in inventory.")
   return false
 end
 
 function checkFuelLevel()
-  if turtle.getFuelLevel() <= math.abs(position.x) + math.abs(position.y) + math.abs(position.z) + 100 then
-    print("Low fuel.")
-    return refuelFromInventory()
-  else
-    return true
+  print("Checking fuel level.")
+  while goHomeFuel() <= 0 do
+    if not refuelFromInventory() then
+      print("Failed to refuel.")
+      return false
+    end
   end
+  return true
 end
 
 function _safeMove(digDirection, moveFunc)
