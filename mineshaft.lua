@@ -166,7 +166,10 @@ function checkFuelLevel()
 end
 
 function _safeMove(digDirection, moveFunc)
-  if getBlock(turtle.detectUp, turtle.inspectUp).hazard == true or getBlock(turtle.detect, turtle.inspect).hazard == true or getBlock(turtle.detectDown, turtle.inspectDown).hazard == true then
+  local blockUp = getBlock(turtle.detectUp, turtle.inspectUp)
+  local blockFront = getBlock(turtle.detect, turtle.inspect)
+  local blockDown = getBlock(turtle.detectDown, turtle.inspectDown)
+  if blockUp.hazard or blockForward.hazard or blockDown.hazard then
     print("_safeMove() detected a hazardous block.")
     return false
   end
