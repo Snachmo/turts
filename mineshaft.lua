@@ -1,6 +1,4 @@
-
-
-
+-- Position (coordinates relative to starting position).
 position = { x = 0, y = 0, z = 0 }
 -- Directions: 0 = north, 1 = east, 2 = south, 3 = west, 4 = up, -1 = down
 direction = 0
@@ -78,7 +76,7 @@ end
 
 function getBlock(detectFunc, inspectFunc)
   if not detectFunc() then
-    print("getBlock.detectFunc returned false")
+    print("getBlock.detectFunc() returned false")
     return nil
   end
   local success, data = inspectFunc()
@@ -107,14 +105,13 @@ end
 
 function _safeDig(detectFunc, inspectFunc, digFunc, digAbundant)
   local block = getBlock(detectFunc, inspectFunc)
-  print(block)
   if block == nil then
     return nil
   elseif block.abundant and digAbundant == false then
     print("Not digging abundant block " .. block.name)
     return false
   elseif block.indestructible then
-    print("Not diggin indestructible block " .. block.name)
+    print("Not digging indestructible block " .. block.name)
     return false
   elseif not digFunc() then
     print("CRITICAL: safeDig.digFunc() returned false.")
@@ -124,7 +121,7 @@ function _safeDig(detectFunc, inspectFunc, digFunc, digAbundant)
 end
 
 function safeDig(digDirection, digAbundant)
-  print("Attempting safeDig " .. digDirection)
+  -- print("Attempting safeDig " .. digDirection)
   if digDirection == 0 then
     return _safeDig(turtle.detect, turtle.inspect, turtle.dig, digAbundant)
   elseif digDirection == -1 then
@@ -137,11 +134,41 @@ function safeDig(digDirection, digAbundant)
   end
 end
 
+function refuelFromInventory()
+  print("Attempting to refuel from inventory with " .. turtle.getFuelLevel() .. " fuel remaining.")
+  for slot = 1, 16 do
+    turtle.select(slot)
+    if turtle.refuel(0) then
+      print("Refueling from slot " .. slot)
+      turtle.refuel(1)
+      print("New fuel level " .. turtle.getFuelLevel())
+      if turtle.checkFuelLevel() then
+        return true
+      end
+    end
+  end
+  print("Failed to refuel, no fuel in inventory.")
+  return false
+end
+
+function checkFuelLevel()
+  if turtle.getFuelLevel() <= math.abs(position.x) + math.abs(position.y) + math.abs(position.z) + 100 then
+    print("Low fuel.")
+    return refuelFromInventory()
+  else
+    return true
+  end
+end
+
 function _safeMove(digDirection, moveFunc)
   while not moveFunc() do
-    print("_safeMove.moveFunc() returned false")
+    print("_safeMove(moveFunc()) returned false")
+    if not checkFuelLevel() then
+      print("_safeMove() failed: checkFuelLevel() returned false.")
+      return false
+    end
     if not safeDig(digDirection, true) then
-      print("Failed to safeMove.")
+      print("_safeMove() failed: safeDig() returned false.")
       return false
     end
   end
@@ -166,10 +193,9 @@ end
 function moveTo(targetX, targetY, targetZ)
   -- Vertical down move (minus Y axis).
   while position.y > targetY do
-    if not safeMove(-1, true) then
-      return false
+    if safeMove(-1, true) then
+      position.y = position.y - 1
     end
-    position.y = position.y - 1
   end
   -- Move North (minus Z axis)
   while position.z > targetZ do
@@ -210,6 +236,7 @@ function moveTo(targetX, targetY, targetZ)
 end
 
 function mineShaft(minY)
+  print("Starting fuel " .. turtle.getFuelLevel())
   while minY < position.y do
     print("Digging down.")
     if not moveTo(position.x, position.y-1, position.z) then
@@ -229,4 +256,4 @@ function mineShaft(minY)
   moveTo(position.x, 0, position.z)
 end
 
-mineShaft(-40)
+mineShaft(-10)
