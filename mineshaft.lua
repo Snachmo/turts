@@ -164,6 +164,8 @@ function checkFuelLevel()
   end
   return true
 end
+-- abdsf
+
 
 function _safeMove(digDirection, moveFunc)
   local blockUp = getBlock(turtle.detectUp, turtle.inspectUp)
