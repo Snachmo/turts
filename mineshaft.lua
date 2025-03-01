@@ -1,7 +1,7 @@
 MAX_Y = 256
 MIN_Y = -256
-NUM_SHAFTS = 20
-START_Z = -16
+NUM_SHAFTS = 8
+START_Z = 0
 
 ABUNDANT_BLOCKS = {
   ["minecraft:dirt"] = true,
@@ -418,7 +418,7 @@ function shaftDown()
     if isBedrock(getDown()) or position.y <= MIN_Y then
       print("Shaft down finished at Y=" .. position.y .. ", going home!")
       goY(0)
-      -- plugShaft(turtle.placeDown)
+      plugShaft(turtle.placeDown)
       return false
     end
     checkReturnConditions()
@@ -445,8 +445,8 @@ function mineShafts()
   checkReturnConditions()
   while shaftStart.z > -2 * NUM_SHAFTS do
     shaftDown()
-    shaftStart.y = 0
-    shaftUp()
+    -- shaftStart.y = 0
+    -- shaftUp()
     shaftStart.z = shaftStart.z - 2
     shaftStart.y = 0
   end
