@@ -1,7 +1,20 @@
-MAX_Y = 64
+MAX_Y = 256
 MIN_Y = -256
-NUM_SHAFTS = 5
-MINE_UP = true
+NUM_SHAFTS = 20
+START_Z = -16
+
+function getItem(item_name)
+  for slot = 1, 16 do
+    item = turtle.getItemDetail(slot)
+    if item then
+      if item.name == item_name then
+        turtle.select(slot)
+        return true
+      end
+    end
+  end
+  return false
+end
 
 function inventoryFull()
   for slot = 1, 16 do
@@ -45,17 +58,8 @@ function plugShaft(placeFunc)
 end
 
 function scoop(placeFunc)
-  for slot = 1, 16 do
-    turtle.select(slot)
-    if turtle.getItemCount() > 0 then
-      item = turtle.getItemDetail()
-      if item then
-        if item.name == "minecraft:bucket" then
-          placeFunc()
-          return true
-        end
-      end
-    end
+  if getItem("minecraft:bucket") then
+    return placeFunc()
   end
   return false
 end
@@ -69,12 +73,12 @@ ABUNDANT_BLOCKS = {
   ["minecraft:granite"] = true,
   ["minecraft:diorite"] = true,
   ["minecraft:andesite"] = true,
+  ["minecraft:netherrack"] = true,
 }
 
 INDESTRUCTIBLE_BLOCKS = {
   ["minecraft:bedrock"] = true,
   ["minecraft:chest"] = true,
-  ["minecraft:ancient_debris"] = true,
   ["minecraft:nether_portal"] = true,
   ["minecraft:ender_portal"] = true,
   ["minecraft:respawn_anchor"] = true,
@@ -86,13 +90,13 @@ HAZARD_BLOCKS = {
 
 function _getBlock(detectFunc, inspectFunc)
   if not detectFunc() then
-    print("getBlock found no block")
+    -- print("getBlock found no block")
     return nil
   end
   local success, data = inspectFunc()
   if success then
     if data == nil then
-      print("getBlock.inspectFunc() successfully returned a nil block")
+      -- print("getBlock.inspectFunc() successfully returned a nil block")
       return nil
     end
     return {
@@ -108,27 +112,15 @@ function _getBlock(detectFunc, inspectFunc)
 end
 
 function getFront()
-  local block = _getBlock(turtle.detect, turtle.inspect)
-  if block ~= nil and block.name == "minecraft:lava" then
-    scoop(turtle.place)
-  end
-  return block
+  return _getBlock(turtle.detect, turtle.inspect)
 end
 
 function getUp()
-  block = _getBlock(turtle.detectUp, turtle.inspectUp)
-  if block.name == "minecraft:lava" then
-    scoop(turtle.placeUp)
-  end
-  return block
+  return _getBlock(turtle.detectUp, turtle.inspectUp)
 end
 
 function getDown()
-  block = _getBlock(turtle.detectDown, turtle.inspectDown)
-  if block.name == "minecraft:lava" then
-    scoop(turtle.placeDown)
-  end
-  return block
+  return _getBlock(turtle.detectDown, turtle.inspectDown)
 end
 
 function isHazard(block)
@@ -161,7 +153,7 @@ end
 function _dig(blockFunc, digFunc, digAbundant)
   local block = blockFunc()
   if block == nil then
-    print("_dig found no block, digging anyway.")
+    -- print("_dig found no block, digging anyway.")
     return digFunc()
   elseif block == false then
     print("_dig failed on blockFunc error.")
@@ -170,7 +162,7 @@ function _dig(blockFunc, digFunc, digAbundant)
   elseif block.indestructible then
     print("_dig failed, indestructible " .. block.name)
   elseif block.abundant and not digAbundant then
-    print("_dig failed, abundant " .. block.name)
+    -- print("_dig failed, abundant " .. block.name)
   else
     print("digging.")
     return digFunc()
@@ -305,39 +297,6 @@ function safeMove(moveFunc, digFunc)
   return false
 end
 
-function mineAround()
-  local turn_direction = 0
-  digFront(false)
-  if direction == 3 then
-    turn_direction = 1
-  elseif direction == 1 then
-    turn_direction = -1
-  end
-  for turn_num = 1, 2 do
-    turn(turn_direction)
-    digFront(false)
-  end
-end
-
-function mineShaft(direction)
-  turnTo(3)
-  if direction == -1 then
-    while position.y >= MIN_Y do
-      if not safeMove(moveDown, digDown) then
-        return false
-      end
-      mineAround()
-    end
-  elseif direction == 1 then
-    while position.y <= MAX_Y do
-      if not safeMove(moveUp, digUp) then
-        return false
-      end
-      mineAround()
-    end
-  end
-end
-
 function goY(targetY)
   while position.y < targetY do
     if not moveUp() then
@@ -355,11 +314,15 @@ end
 function goZ(targetZ)
   while position.z > targetZ do
     turnTo(0)
-    moveForward()
+    if not moveForward() then
+      digFront(true)
+    end
   end
   while position.z < targetZ do
     turnTo(2)
-    moveForward()
+    if not moveForward() then
+      digFront(true)
+    end
   end
   return true
 end
@@ -370,7 +333,7 @@ function goHome()
   turnTo(2)
 end
 
-shaftStart = {y = 0, z = 0}
+shaftStart = {y = 0, z = START_Z}
 
 function goToShaft()
   print("Moving to shaft start at " .. shaftStart.y .. ", " .. shaftStart.z)
@@ -379,6 +342,46 @@ function goToShaft()
     return true
   end
   return false
+end
+
+function mineAround()
+  local turn_direction = 0
+  scoop(turtle.place)
+  digFront(false)
+  if direction == 3 then
+    turn_direction = 1
+  elseif direction == 1 then
+    turn_direction = -1
+  end
+  for turn_num = 1, 2 do
+    turn(turn_direction)
+    scoop(turtle.place)
+    digFront(false)
+  end
+end
+
+function mineShaft(direction)
+  if not goToShaft() then
+    return false
+  end
+  turnTo(3)
+  if direction == -1 then
+    while position.y >= MIN_Y do
+      if not safeMove(moveDown, digDown) then
+        return false
+      end
+      mineAround()
+      scoop(turtle.placeDown)
+    end
+  elseif direction == 1 then
+    while position.y <= MAX_Y do
+      if not safeMove(moveUp, digUp) then
+        return false
+      end
+      mineAround()
+      scoop(turtle.placeUp) 
+    end
+  end
 end
 
 function dumpCargo()
@@ -396,10 +399,6 @@ function checkReturnConditions()
     goHome()
     print("NEED FUEL")
   end
-  if shaftStart.z < -2 * NUM_SHAFTS then
-    print("Mined all shafts!")
-    return false
-  end
 end
 
 function shaftDown()
@@ -409,9 +408,8 @@ function shaftDown()
     if isBedrock(getDown()) or position.y <= MIN_Y then
       print("Shaft down finished at Y=" .. position.y .. ", going home!")
       goY(0)
-      plugShaft(placeDown)
-      shaftStart.z = shaftStart.z - 2
-      shaftStart.y = 0
+      -- plugShaft(turtle.placeDown)
+      return false
     end
     checkReturnConditions()
   end
@@ -424,20 +422,54 @@ function shaftUp()
     if isBedrock(getUp()) or position.y >= MAX_Y then
       print("Shaft up finished at Y=" .. position.y .. ", going home!")
       goY(1)
-      plugShaft(placeUp)
+      -- plugShaft(turtle.placeUp)
       goY(0)
+      return false
     end
     checkReturnConditions()
   end
 end
 
-function main()
-  
-  shaftUp()
-  shaftDown()
+function mineShafts()
 
+  checkReturnConditions()
+  while shaftStart.z > -2 * NUM_SHAFTS do
+    shaftDown()
+    shaftStart.y = 0
+    shaftUp()
+    shaftStart.z = shaftStart.z - 2
+    shaftStart.y = 0
+  end
+
+  print("Mined all shafts!")
+  goHome()
+  dropInventory()
 end
 
-main()
+function getLava()
+  digDown()
+  -- find lava surface
+  while not scoop(turtle.place) or scoop(turtle.placeDown) do
+    while not moveDown() do
+      if isBedrock(getDown()) then
+        print("Hit bedrock.")
+        return
+      end
+      digDown()
+    end
+  end
+  print("Found lava.")
+  moveForward()
+  while scoop(turtle.place) or scoop(turtle.placeDown) do
+    print("Scooped lava.")
+    if not moveForward() then
+      print("Z progress blocked.")
+      return
+    end
+  end
+  print("Done!")
+end
+
+mineShafts()
 goHome()
-dropInventory()
+turnTo(0)
