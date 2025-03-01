@@ -426,8 +426,6 @@ function shaftUp()
       goY(1)
       plugShaft(placeUp)
       goY(0)
-      shaftStart.z = shaftStart.z - 2
-      shaftStart.y = 0
     end
     checkReturnConditions()
   end
@@ -435,10 +433,8 @@ end
 
 function main()
   
-  
+  shaftUp()
 
-
-  end
 end
 
 main()
