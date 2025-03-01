@@ -1,3 +1,8 @@
+MAX_Y = 64
+MIN_Y = -256
+NUM_SHAFTS = 5
+MINE_UP = true
+
 function inventoryFull()
   for slot = 1, 16 do
     if turtle.getItemCount(slot) == 0 then
@@ -21,15 +26,15 @@ function dropInventory()
   return true
 end
 
-function plugShaft()
+function plugShaft(placeFunc)
   while true do
     for slot = 1, 16 do
       turtle.select(slot)
       if turtle.getItemCount() > 0 then
         item = turtle.getItemDetail()
         if item then
-          if item.name == "minecraft:obsidian" or item.name == "minecraft:cobblestone" then
-            turtle.placeDown()
+          if item.name == "minecraft:obsidian" or item.name == "minecraft:cobblestone" or item.name == "minecraft:netherrack" then
+            placeFunc()
             return true
           end
         end
@@ -37,6 +42,22 @@ function plugShaft()
     end
     print("Failed to plug shaft!")
   end
+end
+
+function scoop(placeFunc)
+  for slot = 1, 16 do
+    turtle.select(slot)
+    if turtle.getItemCount() > 0 then
+      item = turtle.getItemDetail()
+      if item then
+        if item.name == "minecraft:bucket" then
+          placeFunc()
+          return true
+        end
+      end
+    end
+  end
+  return false
 end
 
 ABUNDANT_BLOCKS = {
@@ -87,15 +108,27 @@ function _getBlock(detectFunc, inspectFunc)
 end
 
 function getFront()
-  return _getBlock(turtle.detect, turtle.inspect)
+  block = _getBlock(turtle.detect, turtle.inspect)
+  if block.name == "minecraft:lava" then
+    scoop(turtle.place)
+  end
+  return block
 end
 
 function getUp()
-  return _getBlock(turtle.detectUp, turtle.inspectUp)
+  block = _getBlock(turtle.detectUp, turtle.inspectUp)
+  if block.name == "minecraft:lava" then
+    scoop(turtle.placeUp)
+  end
+  return block
 end
 
 function getDown()
-  return _getBlock(turtle.detectDown, turtle.inspectDown)
+  block = _getBlock(turtle.detectDown, turtle.inspectDown)
+  if block.name == "minecraft:lava" then
+    scoop(turtle.placeDown)
+  end
+  return block
 end
 
 function isHazard(block)
@@ -119,6 +152,10 @@ function inDanger()
     return true
   end
   return false
+end
+
+function isBedrock(block)
+  return block ~= nil and block.name == "minecraft:bedrock"
 end
 
 function _dig(blockFunc, digFunc, digAbundant)
@@ -268,25 +305,37 @@ function safeMove(moveFunc, digFunc)
   return false
 end
 
-function mineShaft(maxDepth)
-  turnTo(3)
-  while position.y > maxDepth do
-    if not safeMove(moveDown, digDown) then
-      return false
-    end
-    local turn_direction = 0
+function mineAround()
+  local turn_direction = 0
+  digFront(false)
+  if direction == 3 then
+    turn_direction = 1
+  elseif direction == 1 then
+    turn_direction = -1
+  end
+  for turn_num = 1, 2 do
+    turn(turn_direction)
     digFront(false)
-    if direction == 3 then
-      turn_direction = 1
-    elseif direction == 1 then
-      turn_direction = -1
+  end
+end
+
+function mineShaft(direction)
+  turnTo(3)
+  if direction == -1 then
+    while position.y >= MIN_Y do
+      if not safeMove(moveDown, digDown) then
+        return false
+      end
+      mineAround()
     end
-    for turn_num = 1, 2 do
-      turn(turn_direction)
-      digFront(false)
+  elseif direction == 1 then
+    while position.y <= MAX_Y do
+      if not safeMove(moveUp, digUp) then
+        return false
+      end
+      mineAround()
     end
   end
-  print("Reached max depth.")
 end
 
 function goY(targetY)
@@ -339,42 +388,56 @@ function dumpCargo()
   dropInventory()
 end
 
-function main()
-  local shaftDepth = -256
+function checkReturnConditions()
+  if inventoryFull() then
+    dumpCargo()
+  end
+  while not hasFuel() do
+    goHome()
+    print("NEED FUEL")
+  end
+  if shaftStart.z < -2 * NUM_SHAFTS then
+    print("Mined all shafts!")
+    return false
+  end
+end
+
+function shaftDown()
   while true do
-    if not goToShaft() then
-      goHome()
-      print("goToShaft returned false.")
-      return
-    end
-    mineShaft(shaftDepth)
-    shaftStart.y = position.y + 1
-    if position.y <= shaftDepth then
-      print("Reached max depth of " .. shaftDepth)
+    mineShaft(-1)
+    shaftStart.y = position.y
+    if isBedrock(getDown()) or position.y <= MIN_Y then
+      print("Shaft down finished at Y=" .. position.y .. ", going home!")
       goY(0)
-      plugShaft()
+      plugShaft(placeDown)
       shaftStart.z = shaftStart.z - 2
       shaftStart.y = 0
     end
-    local block_below = getDown()
-    if block_below ~= nil and block_below.name == "minecraft:bedrock" then
-      print("Hit bedrock at " .. position.y .. ", starting new shaft.")
+    checkReturnConditions()
+  end
+end
+
+function shaftUp()
+  while true do
+    mineShaft(1)
+    shaftStart.y = position.y
+    if isBedrock(getUp()) or position.y >= MAX_Y then
+      print("Shaft up finished at Y=" .. position.y .. ", going home!")
+      goY(1)
+      plugShaft(placeUp)
       goY(0)
-      plugShaft()
       shaftStart.z = shaftStart.z - 2
       shaftStart.y = 0
     end
-    if inventoryFull() then
-      dumpCargo()
-    end
-    while not hasFuel() do
-      goHome()
-      print("NEED FUEL")
-    end
-    if shaftStart.z < -6 then
-      print("Mined all shafts!")
-      return
-    end
+    checkReturnConditions()
+  end
+end
+
+function main()
+  
+  
+
+
   end
 end
 
