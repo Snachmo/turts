@@ -108,8 +108,8 @@ function _getBlock(detectFunc, inspectFunc)
 end
 
 function getFront()
-  block = _getBlock(turtle.detect, turtle.inspect)
-  if block.name == "minecraft:lava" then
+  local block = _getBlock(turtle.detect, turtle.inspect)
+  if block ~= nil and block.name == "minecraft:lava" then
     scoop(turtle.place)
   end
   return block
@@ -434,6 +434,7 @@ end
 function main()
   
   shaftUp()
+  shaftDown()
 
 end
 
