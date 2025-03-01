@@ -3,6 +3,30 @@ MIN_Y = -256
 NUM_SHAFTS = 20
 START_Z = -16
 
+ABUNDANT_BLOCKS = {
+  ["minecraft:dirt"] = true,
+  ["minecraft:grass_block"] = true,
+  ["minecraft:gravel"] = true,
+  ["minecraft:stone"] = true,
+  ["minecraft:deepslate"] = true,
+  ["minecraft:granite"] = true,
+  ["minecraft:diorite"] = true,
+  ["minecraft:andesite"] = true,
+  ["minecraft:netherrack"] = true,
+}
+
+INDESTRUCTIBLE_BLOCKS = {
+  ["minecraft:bedrock"] = true,
+  ["minecraft:chest"] = true,
+  ["minecraft:nether_portal"] = true,
+  ["minecraft:ender_portal"] = true,
+  ["minecraft:respawn_anchor"] = true,
+}
+
+HAZARD_BLOCKS = {
+  ["minecraft:tnt"] = true,
+}
+
 function getItem(item_name)
   for slot = 1, 16 do
     item = turtle.getItemDetail(slot)
@@ -14,6 +38,16 @@ function getItem(item_name)
     end
   end
   return false
+end
+
+function discardAbundant()
+  for slot 1, 16 do
+    item = turtle.getItemDetail(slot)
+    if item ~= nil and ABUNDANT_BLOCKS[item.name] then
+      turtle.select(slot)
+      turtle.dropDown()
+    end
+  end
 end
 
 function inventoryFull()
@@ -63,30 +97,6 @@ function scoop(placeFunc)
   end
   return false
 end
-
-ABUNDANT_BLOCKS = {
-  ["minecraft:dirt"] = true,
-  ["minecraft:grass_block"] = true,
-  ["minecraft:gravel"] = true,
-  ["minecraft:stone"] = true,
-  ["minecraft:deepslate"] = true,
-  ["minecraft:granite"] = true,
-  ["minecraft:diorite"] = true,
-  ["minecraft:andesite"] = true,
-  ["minecraft:netherrack"] = true,
-}
-
-INDESTRUCTIBLE_BLOCKS = {
-  ["minecraft:bedrock"] = true,
-  ["minecraft:chest"] = true,
-  ["minecraft:nether_portal"] = true,
-  ["minecraft:ender_portal"] = true,
-  ["minecraft:respawn_anchor"] = true,
-}
-
-HAZARD_BLOCKS = {
-  ["minecraft:tnt"] = true,
-}
 
 function _getBlock(detectFunc, inspectFunc)
   if not detectFunc() then
