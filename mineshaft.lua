@@ -1,7 +1,7 @@
 MAX_Y = 256
 MIN_Y = -256
-NUM_SHAFTS = 8
-START_Z = 0
+NUM_SHAFTS = 2
+START_Z = -15
 
 ABUNDANT_BLOCKS = {
   ["minecraft:dirt"] = true,
@@ -29,7 +29,7 @@ HAZARD_BLOCKS = {
 
 function getItem(item_name)
   for slot = 1, 16 do
-    item = turtle.getItemDetail(slot)
+    local item = turtle.getItemDetail(slot)
     if item then
       if item.name == item_name then
         turtle.select(slot)
@@ -41,13 +41,16 @@ function getItem(item_name)
 end
 
 function discardAbundant()
-  for slot 1, 16 do
-    item = turtle.getItemDetail(slot)
+  discarded = false
+  for slot = 1, 16 do
+    local item = turtle.getItemDetail(slot)
     if item ~= nil and ABUNDANT_BLOCKS[item.name] then
       turtle.select(slot)
       turtle.dropDown()
+      discarded = true
     end
   end
+  return discarded
 end
 
 function inventoryFull()
@@ -55,6 +58,9 @@ function inventoryFull()
     if turtle.getItemCount(slot) == 0 then
       return false
     end
+  end
+  if discardAbundant() then 
+    return false
   end
   return true
 end
@@ -80,7 +86,7 @@ function plugShaft(placeFunc)
       if turtle.getItemCount() > 0 then
         item = turtle.getItemDetail()
         if item then
-          if item.name == "minecraft:obsidian" or item.name == "minecraft:cobblestone" or item.name == "minecraft:netherrack" then
+          if item.name == "minecraft:obsidian" or item.name == "minecraft:cobblestone" or item.name == "minecraft:cobbled_deepslate" or item.name == "minecraft:netherrack" then
             placeFunc()
             return true
           end
@@ -443,7 +449,7 @@ end
 function mineShafts()
 
   checkReturnConditions()
-  while shaftStart.z > -2 * NUM_SHAFTS do
+  while shaftStart.z > START_Z - (2 * NUM_SHAFTS) do
     shaftDown()
     -- shaftStart.y = 0
     -- shaftUp()
